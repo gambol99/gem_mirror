@@ -1,0 +1,19 @@
+#
+#   Author: Rohith (gambol99@gmail.com)
+#   Date: 2014-07-30 14:11:07 +0100 (Wed, 30 Jul 2014)
+#
+#  vim:ts=4:sw=4:et
+#
+---
+mirrors:
+  - name: rubygems
+    source: https://rubygems.org
+    dest: /var/rubygems
+    threads: 30
+    delete_removed: false
+  - name: some_gems
+    source: https://rubygems.org
+    dest: /var/rubygems1
+threads: 10
+delete_removed: true
+verbose: true
