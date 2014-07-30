@@ -5,7 +5,7 @@
 #  vim:ts=4:sw=4:et
 #
 require 'utils'
-require 'httparty'
+
 require 'threads'
 require 'timeout'
 require 'tempfile'
@@ -56,27 +56,15 @@ module GemMirror
 
     def update_spec update_spec_timout = 30
       debug "update_spec: attempting the specification from the source: #{source}"
-      begin
-        response = nil
-        gems_specification = temporary_file
-        Timeout.timeout update_spec_timout do
-          debug "update_spec: downloading the specification from: #{gems_spec}"
-          response = self.class.get( gems_spec )
-        end
-        debug "update_spec: writing out the gems specification for source: #{name} to temporary file: #{gems_specification}"
-        File.open( gems_specification, "wb" ) do |fd|
-          response.parsed_response do |io|
-            fd.puts io
-          end
-        end
-        debug "update_spec: saved the gems_specification"
-      rescue Timeout::Error => e
-        raise Exception, "timed out after #{update_spec_timout} seconds attempting pull #{gems_spec}"
-      end
+      # step: pull the gem specification file from the source
+      specification = fetch.get gems_source_spec, timeout
+      debug "update_spec: saved the gems_specification"
+      # step: if the specification is gzip we save to a temporary file and uncompress
+
     end
 
-    def timeout time_out = 30, &block
-      Timeout.timeout time_out { yield }
+    def fetch
+      @fetch ||= GemMirror::Fetch.new settings[:source]
     end
 
     def temporary_file
@@ -99,19 +87,9 @@ module GemMirror
       settings[:source]
     end
 
-    def gems_specification
-      settings[:spec]
-    end
-
-    def threads
-      settings[:threads] || 10
-    end
-
-    def gems_spec
+    def gems_source_spec
       "#{source}/#{Gem.marshal_version}}".gz
     end
-
-    def temp
 
     def destination filter = nil
       return settings[:dest] if filter.nil?
