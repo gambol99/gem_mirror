@@ -7,11 +7,10 @@
 module GemMirror
   ROOT = File.expand_path File.dirname __FILE__
 
-  autoload :Version,    "#{ROOT}/gem_mirror/version"
-  autoload :Mirror,     "#{ROOT}/gem_mirror/mirror"
+  autoload :Mirror, "#{ROOT}/gem_mirror/mirror"
 
   def self.version
-    GemMirror::VERSION
+    VERSION = '0.0.1'
   end
 
   def self.new options

@@ -22,25 +22,40 @@ module GemMirror
 
     def file path, save_to, timeout = Default_Timeout
       response = get( path, timeout )
+
     end
 
     def get path, timeout = Default_Timeout
-      begin
-        Timeout::timeout timeout do
-          response = self.class.get path
-          handle_error response.code
-        end
-      rescue Timeout::Error => e
+      response = request :get, path, timeout
 
-      end
+    end
+
+    def head path, timeout = Default_Timeout
+      response = request :head, path, timeout
+
     end
 
     private
-    def handle_error http_code
-      case resp.code.to_i
+    def request method, path, timeout = Default_Timeout, options = {}
+      begin
+        raise ArgumentError, "the method: #{method} is not supported" unless self.class.respond_to? method
+        Timeout::timeout timeout do
+          debug "request: method: #{method}, path: #{path}, options: #{options}, timeout: #{timeout}"
+          response = self.class.send method, path, options
+          debug "request: code: #{response.code}, body: #{response.body}" 
+        end
+        handle_response_error response unless response.code == 200
+      rescue Timeout::Error => e
+        error "request: method: #{method}, path: #{path}, options: #{options} timed out"
+        raise Exception, "request timed out waiting for response"
+      end
+    end
+
+    def handle_response_error response
+      case response.code.to_i
       when 304
       when 302
-        get resp['location'], path
+        get response.headers['location'], path
       when 403, 404
         warn "#{resp.code} on #{File.basename(path)}"
       else

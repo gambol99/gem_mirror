@@ -30,9 +30,8 @@ module GemMirror
       end
     end
 
-    module FileUtils
-      require uri
-
+    module URLS
+      require uri unless defined? URI
       def uri? url
         url =~ URI::regexp
       end

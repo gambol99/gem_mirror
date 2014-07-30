@@ -6,8 +6,15 @@
 #
 module GemMirror
   module Logger
+    %w(info debug error warn).each do |x|
+      define_method x.to_sym do |x,message|
+        formated_print_line x, message
+      end
+    end
 
-
-
+    private
+    def formated_print_line prefix, message, color = :none
+      puts "%-5s : %s" % [ "[#{prefix}]", message ] if message
+    end
   end
 end

@@ -13,7 +13,13 @@ options = {
 }
 
 gems = GemMirror.new options
-puts "Number of gems: %d, total size: #{%d}" % [ gems.count, gems.size ]
+gems.mirrors
+
+source = gems.mirror 'rubygem'
+puts "mirror: #{source.name}, gems: #{source.size}"
+puts "mirroring the source now"
+source.mirror '/var/rubygem'
+
 
 
 
