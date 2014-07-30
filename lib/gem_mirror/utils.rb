@@ -6,15 +6,36 @@
 #
 module GemMirror
   module Utils
-    def validate_file filename, writable = false
-      raise ArgumentError, 'you have not specified a file to check'       unless filename
-      raise ArgumentError, 'the file %s does not exist'   % [ filename ]  unless File.exists? filename
-      raise ArgumentError, 'the file %s is not a file'    % [ filename ]  unless File.file? filename
-      raise ArgumentError, 'the file %s is not readable'  % [ filename ]  unless File.readable? filename
-      if writable
-        raise ArgumentError, "the filename #{filename} is not writable"   unless File.writable? filename
+    module FileUtils
+      def validate_file filename, writable = false
+        raise ArgumentError, 'you have not specified a file to check'       unless filename
+        raise ArgumentError, 'the file %s does not exist'   % [ filename ]  unless File.exists? filename
+        raise ArgumentError, 'the file %s is not a file'    % [ filename ]  unless File.file? filename
+        raise ArgumentError, 'the file %s is not readable'  % [ filename ]  unless File.readable? filename
+        if writable
+          raise ArgumentError, "the filename #{filename} is not writable"   unless File.writable? filename
+        end
+        filename
       end
-      filename
+
+      def validate_directory directory, writable = false
+        raise ArgumentError, 'you have not specified a directory to check'  unless directory
+        raise ArgumentError, 'the directory %s does not exist'   % [ directory ]  unless File.exists? directory
+        raise ArgumentError, 'the directory %s is not a file'    % [ directory ]  unless File.directory? directory
+        raise ArgumentError, 'the directory %s is not readable'  % [ directory ]  unless File.readable? directory
+        if writable
+          raise ArgumentError, "the filename #{filename} is not writable"   unless File.writable? directory
+        end
+        directory
+      end
+    end
+
+    module FileUtils
+      require uri
+
+      def uri? url
+        url =~ URI::regexp
+      end
     end
   end
 end
