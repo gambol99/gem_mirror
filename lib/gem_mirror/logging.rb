@@ -5,16 +5,18 @@
 #  vim:ts=4:sw=4:et
 #
 module GemMirror
-  module Logger
-    %w(info debug error warn).each do |x|
-      define_method x.to_sym do |x,message|
-        formated_print_line x, message
+  module Utils
+    module Logger
+      [:info,:error,:warn,:debug].each do |m|
+        define_method m do |*args,&block|
+          formated_print_line m.to_s, args.first || ''
+        end
       end
-    end
 
-    private
-    def formated_print_line prefix, message, color = :none
-      puts "%-5s : %s" % [ "[#{prefix}]", message ] if message
+      private
+      def formated_print_line prefix, message, color = :none
+        puts "%-5s : %s" % [ "[#{prefix}]", message ] if message
+      end
     end
   end
 end

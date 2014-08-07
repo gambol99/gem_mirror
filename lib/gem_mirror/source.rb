@@ -5,23 +5,22 @@
 #  vim:ts=4:sw=4:et
 #
 require 'utils'
-require 'threads'
+require 'thread'
 require 'timeout'
 require 'tempfile'
+require 'fetch'
 require 'forwardable'
 
 module GemMirror
   class Source
       extend Forwardable
-    include GemMirror::Logging
-    include HTTParty
-
-    attr_accessor :name, :destination, :threads, :remove_deleted
+    include GemMirror::Utils::Logger
+   
+    attr_accessor :name, :destination, :threads, :remove_deleted, :source
 
     def_delegator :update_spec.size, :size
     def_delegator :update, :gems
-    def_delegator :self.class.base_uri, :source
-
+   
     def initialize name 
       @name = name
       @destination = nil
@@ -31,22 +30,17 @@ module GemMirror
       @remove_deleted = true
     end
 
-    def source=(value)
-      self.class.base_uri = @source 
-    end
-
     def refresh
-      @gems_spec = nil
       update
     end
 
     def mirror directory = @destination, &block 
       info "name: #{name}, starting off the mirroring on gems"
 
-
     end
 
     def update timeout = 30
+      debug "update: name: #{@name}, updating the specification"
       @source_specification ||= update_source_specification( timeout )
     end
 
@@ -54,14 +48,17 @@ module GemMirror
     def update_source_specification update_spec_timout = 30
       debug "update_spec: attempting the specification from the source: #{source}"
       # step: pull the gem specification file from the source
-      specification = fetch.get( gems_source_spec, timeout )
-      debug "update_spec: saved the gems_specification"
+      source_specification = temporary_file
+      source_specification.binmode
+      fetch.file( gems_specification_filename_gz, source_specification, update_spec_timout )
+      debug "update_spec: #{@name} saved the gems_specification, %s" % [ source_specification.path ]
       # step: if the specification is gzip we save to a temporary file and uncompress
+      
 
     end
 
     def fetch
-      @fetch ||= GemMirror::Fetch.new settings[:source]
+      @fetch ||= GemMirror::Fetch.new source
     end
 
     def temporary_file
@@ -72,8 +69,12 @@ module GemMirror
       Dir[destination('*.gems')].entries.map { |f| File.basename(f) }
     end
 
-    def gems_source_spec
-      "#{source}/#{Gem.marshal_version}}".gz
+    def gems_specification_filename
+      "#{source}/specs.#{Gem.marshal_version}"
+    end
+
+    def gems_specification_filename_gz
+      gems_specification_filename << ".gz"
     end
 
     def destination filter = nil

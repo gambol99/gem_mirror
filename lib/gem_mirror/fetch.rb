@@ -11,18 +11,20 @@ module GemMirror
   class Fetch
     include HTTParty
     include GemMirror::Utils::URLS
-    include GemMirror::Logging
+    include GemMirror::Utils::Logger
 
     Default_Timeout = 30
 
     def initialize base_uri
       raise ArgumentError, "the base url: #{base_uri} is invalid" unless uri? base_uri
-      self.class.base_uri = base_uri
+      self.class.base_uri base_uri
     end
 
-    def file path, save_to, timeout = Default_Timeout
-      response = get( path, timeout )
-
+    def file path, file, timeout = Default_Timeout
+      debug "file: saving the file: #{path}, file: #{file.path}, timeout: #{timeout}"
+      file.write( get( path, timeout ).parsed_response )
+      file.rewind
+      file.open 
     end
 
     def get path, timeout = Default_Timeout
@@ -37,18 +39,20 @@ module GemMirror
 
     private
     def request method, path, timeout = Default_Timeout, options = {}
+      response = nil
       begin
         raise ArgumentError, "the method: #{method} is not supported" unless self.class.respond_to? method
-        Timeout::timeout timeout do
+        Timeout::timeout( timeout ) do
           debug "request: method: #{method}, path: #{path}, options: #{options}, timeout: #{timeout}"
           response = self.class.send method, path, options
-          debug "request: code: #{response.code}, body: #{response.body}" 
+          debug "request: code: #{response.code}" 
         end
         handle_response_error response unless response.code == 200
       rescue Timeout::Error => e
         error "request: method: #{method}, path: #{path}, options: #{options} timed out"
         raise Exception, "request timed out waiting for response"
       end
+      response
     end
 
     def handle_response_error response

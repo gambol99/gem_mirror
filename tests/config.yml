@@ -8,12 +8,12 @@
 mirrors:
   rubygems:
     source: https://rubygems.org
-    dest: /var/rubygems
+    destination: ./rubygems
     threads: 30
     delete_removed: false
-  some_gems:
-    source: https://rubygems.org
-    dest: /var/rubygems1
+  gems:
+    source: https://gems.domain.com
+    destination: ./gems_source
 threads: 10
 delete_removed: true
 verbose: true

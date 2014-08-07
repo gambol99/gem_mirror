@@ -5,7 +5,8 @@
 #
 #  vim:ts=4:sw=4:et
 #
-require 'rubygems' if RUBY_VERSION '1.9.0'
+$:.unshift File.join(File.dirname(__FILE__),'.','../lib')
+require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'gem_mirror'
 
 options = {
@@ -13,12 +14,11 @@ options = {
 }
 
 gems = GemMirror.new options
-gems.mirrors
 
-source = gems.mirror 'rubygem'
-puts "mirror: #{source.name}, gems: #{source.size}"
-puts "mirroring the source now"
-source.mirror '/var/rubygem'
+gems.refresh 'rubygems'
+#puts "mirror: #{source.name}, gems: #{source.size}"
+#puts "mirroring the source now"
+#source.mirror '/var/rubygem'
 
 
 

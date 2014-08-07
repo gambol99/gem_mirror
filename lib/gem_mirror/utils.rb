@@ -24,14 +24,14 @@ module GemMirror
         raise ArgumentError, 'the directory %s is not a file'    % [ directory ]  unless File.directory? directory
         raise ArgumentError, 'the directory %s is not readable'  % [ directory ]  unless File.readable? directory
         if writable
-          raise ArgumentError, "the filename #{filename} is not writable"   unless File.writable? directory
+          raise ArgumentError, "the filename #{directory} is not writable"   unless File.writable? directory
         end
         directory
       end
     end
 
     module URLS
-      require uri unless defined? URI
+      require 'uri' unless defined? URI
       def uri? url
         url =~ URI::regexp
       end
