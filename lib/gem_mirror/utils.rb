@@ -4,8 +4,11 @@
 #
 #  vim:ts=4:sw=4:et
 #
+require 'gzip'
+
 module GemMirror
   module Utils
+    include GemMirror::Utils::Gzip
     module FileUtils
       def validate_file filename, writable = false
         raise ArgumentError, 'you have not specified a file to check'       unless filename

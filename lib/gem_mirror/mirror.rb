@@ -23,7 +23,7 @@ module GemMirror
       settings validate_options( options )
     end
 
-    def mirrors 
+    def mirrors
       settings['mirrors'].keys
     end
 
@@ -39,13 +39,12 @@ module GemMirror
     end
 
     def refresh name
-      raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name 
-      PP.pp sources[name]
+      raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name
       sources[name].refresh
     end
 
     def mirror name
-      raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name 
+      raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name
 
     end
 
@@ -54,29 +53,28 @@ module GemMirror
       @settings ||= configuration
     end
 
-    def mirror? name 
+    def mirror? name
       settings[name].nil?
     end
 
-    def validate_options options 
+    def validate_options options
       # step: load any configurations files
       configuration = ( options[:config] ) ? load_configuration_file( options[:config] ) : set_default_configuration
       # step: check we have the validate_options
       raise ArgumentError, "you have not specified any mirrors" unless configuration['mirrors']
       configuration['mirrors'].each_pair do |name,config|
         validate_mirror_configuration name, config
-        new_source = GemMirror::Source.new name 
+        new_source = GemMirror::Source.new name
         new_source.source = config['source']
         new_source.destination = config['destination']
         new_source.threads = config['threads'] || configuration['threads'] || 1
-        new_source.remove_deleted = config['remove_deleted'] || configuration['remove_deleted'] || true 
+        new_source.remove_deleted = config['remove_deleted'] || configuration['remove_deleted'] || true
         sources[name] = new_source
       end
-      PP.pp sources
       configuration
     end
 
-    def sources 
+    def sources
       @sources ||= {}
     end
 
@@ -86,11 +84,10 @@ module GemMirror
 
     def set_default_configuration
       {}
-    end 
+    end
 
-    def load_configuration_file filename  
-      validate_file filename
-      YAML.load(File.read(filename))
+    def load_configuration_file filename
+      YAML.load(File.read(validate_file(filename)))
     end
 
     def validate_mirror_configuration name, configuration

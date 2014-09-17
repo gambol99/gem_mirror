@@ -15,7 +15,7 @@ options = {
 
 gems = GemMirror.new options
 
-gems.refresh 'rubygems'
+gems.mirror 'rubygems'
 #puts "mirror: #{source.name}, gems: #{source.size}"
 #puts "mirroring the source now"
 #source.mirror '/var/rubygem'

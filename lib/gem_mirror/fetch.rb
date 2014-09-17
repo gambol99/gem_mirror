@@ -24,7 +24,7 @@ module GemMirror
       debug "file: saving the file: #{path}, file: #{file.path}, timeout: #{timeout}"
       file.write( get( path, timeout ).parsed_response )
       file.rewind
-      file.open 
+      file.open if block_given?
     end
 
     def get path, timeout = Default_Timeout
@@ -45,7 +45,7 @@ module GemMirror
         Timeout::timeout( timeout ) do
           debug "request: method: #{method}, path: #{path}, options: #{options}, timeout: #{timeout}"
           response = self.class.send method, path, options
-          debug "request: code: #{response.code}" 
+          debug "request: code: #{response.code}"
         end
         handle_response_error response unless response.code == 200
       rescue Timeout::Error => e
