@@ -23,18 +23,24 @@ module GemMirror
     def file path, file, timeout = Default_Timeout
       debug "file: saving the file: #{path}, file: #{file.path}, timeout: #{timeout}"
       file.write( get( path, timeout ).parsed_response )
-      file.rewind
-      file.open if block_given?
+      if block_given?
+        file.rewind
+        file.open
+      else
+        file.close
+      end
+    end
+
+    def etag path, timeout = Default_Timeout
+      head( path, timeout ).headers['ETag']
     end
 
     def get path, timeout = Default_Timeout
-      response = request :get, path, timeout
-
+      request :get, path, timeout
     end
 
     def head path, timeout = Default_Timeout
-      response = request :head, path, timeout
-
+      request :head, path, timeout
     end
 
     private
