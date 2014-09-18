@@ -33,15 +33,19 @@ module GemMirror
     def mirror
       respositories.mirrors.each do |name|
         next unless name[/#{options[:mirror]}/]
-        respositories.mirror name, options[:filter]
+        respositories.mirror name, options
       end
     end
 
     def updates
-
+      respositories.mirrors.each do |name|
+        next unless name[/#{options[:mirror]}/]
+        respositories.check_updates name, options
+      end
     end
 
     def details
+
 
     end
 

@@ -35,19 +35,14 @@ module GemMirror
       end
     end
 
-    def check_updates name, filter = '*'
-      raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name
-      sources[name].check_updates filter
-    end
-
-    def refresh name
-      raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name
-      sources[name].refresh
-    end
-
-    def mirror name, filter = '.*'
-      raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name
-      sources[name].mirror filter
+    %w(:check_updates refresh mirror).each do |x|
+      define_method x.to_sym do |name,overrides|
+        raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name
+        overrides          ||= {}
+        overrides[:filter] ||= '.*'
+        overrides[:refresh_specification] ||= true
+        sources[name].send( x.to_sym, overrides )
+      end
     end
 
     def mirrors
