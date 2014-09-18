@@ -11,7 +11,6 @@ require 'utils'
 require 'yaml'
 require 'logging'
 require 'source'
-require 'pp'
 
 module GemMirror
   class Mirror
@@ -43,9 +42,10 @@ module GemMirror
       sources[name].refresh
     end
 
-    def mirror name
+    def mirror name, filter = '.*'
       raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name
-
+      debug "mirror: source: #{name}, filter: #{filter}"
+      sources[name].mirror filter
     end
 
     private

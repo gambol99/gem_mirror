@@ -20,15 +20,13 @@ module GemMirror
       self.class.base_uri base_uri
     end
 
-    def file path, file, timeout = Default_Timeout
-      debug "file: saving the file: #{path}, file: #{file.path}, timeout: #{timeout}"
-      file.write( get( path, timeout ).parsed_response )
-      if block_given?
-        file.rewind
-        file.open
-      else
-        file.close
+    def file url, filename, timeout = Default_Timeout
+      debug "file: saving the file: #{url}, filename: #{filename}, timeout: #{timeout}"
+      File.open( filename, 'w' ) do |fd|
+        fd.binmode
+        fd.write( get( url, timeout ).parsed_response )
       end
+      debug "file: downloaded file: #{url}, filaname: #{filename}, size: #{File.size(filename)} bytes"
     end
 
     def etag path, timeout = Default_Timeout
@@ -49,9 +47,11 @@ module GemMirror
       begin
         raise ArgumentError, "the method: #{method} is not supported" unless self.class.respond_to? method
         Timeout::timeout( timeout ) do
+          start_time = Time.now
           debug "request: method: #{method}, path: #{path}, options: #{options}, timeout: #{timeout}"
           response = self.class.send method, path, options
-          debug "request: code: #{response.code}"
+          time_took = Time.now - start_time
+          debug "request: response code: #{response.code}, time: #{time_took * 1000} ms"
         end
         handle_response_error response unless response.code == 200
       rescue Timeout::Error => e

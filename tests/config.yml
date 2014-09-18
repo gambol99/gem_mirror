@@ -9,7 +9,7 @@ mirrors:
   rubygems:
     source: https://rubygems.org
     destination: ./rubygems
-    threads: 30
+    threads: 10
     delete_removed: false
   gems:
     source: https://gems.domain.com
