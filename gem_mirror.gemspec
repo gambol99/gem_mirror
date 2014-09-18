@@ -14,8 +14,8 @@ Gem::Specification.new do |s|
   s.date        = '2014-07-31'
   s.authors     = ["Rohith Jayawardene"]
   s.email       = 'gambol99@gmail.com'
-  s.homepage    = 'http://rubygems.org/gems/gem-mirror'
-  s.summary     = %q{Gems mirroring libary}
+  s.homepage    = 'https://github.com/gambol99/gem_mirror'
+  s.summary     = %q{Gems mirroring cli}
   s.description = %q{A small libary for mirroring gems from one site to a directory}
   s.license     = 'GPL'
   s.files       = `git ls-files`.split("\n")
