@@ -5,18 +5,21 @@
 #
 #  vim:ts=4:sw=4:et
 #
+$:.unshift File.join(File.dirname(__FILE__),'.','../lib')
 require 'rubygems' if RUBY_VERSION < '1.9.0'
-require 'optparse'
+require 'optionscrapper'
+require 'colorize'
+require 'forwardable'
 require 'gem_mirror'
 
 module GemMirror
   class CLI
     include GemMirror::Utils
-    include GemMirror::Logging
 
     def initialize
       begin
         parser.parse!
+        send options[:command] if options[:command]
       rescue SystemExit => e
         exit e.status
       rescue Exception => e
@@ -25,25 +28,41 @@ module GemMirror
     end
 
     private
+    def mirror
+      fail "the mirror: #{options[:mirror]} does not exist in configuration" if options[:mirror] and mirror? options[:mirror]
+      # step: if we've specified a mirror, check it exists
+      mirrors( options[:mirror] || '.*' ).each do |x|
 
 
-    def settings filename = options[:config]
-      unless @settings
-        if options[:config]
-          @setting = load_settings_file
-        else
-
-
-        end
       end
     end
 
-    def load_settings_file filename = options[:config]
-      validate_file filename
-      info "loading the configuration file: #{filename}"
-      config = YAML.load(File.read(filename))
-      # step: validate we have t
+    def updates
 
+    end
+
+    def details
+
+    end
+
+    def settings
+      @settings ||= nil
+      unless @settings
+        raise ArgumentError, "you have not specified a configuration file" unless options[:config]
+        @settings = load_configuration
+      end
+    end
+
+    def load_configuration
+      YAML.load(File.read(validate_file settings[:config]))
+    end
+
+    def mirrors filter = '.*'
+      settings['mirrors'].keys.select { |x| x[/#{filter}/] }
+    end
+
+    def mirror? name
+      mirrors.include? name
     end
 
     def options
@@ -54,17 +73,39 @@ module GemMirror
       { :threads => 10 }
     end
 
+    private
+    def formated_print_line message, color = :green
+      puts  "%-5s [%s] : %s".send( color ) % [ "[info]", Time.now.strftime('%H:%M:%S'), message ] if message
+    end
+    alias_method :info, :formated_print_line
+    def fail message; parser.usage message; end
+
     def parser
-      @parser ||= OptionParse.new do |o|
+      @parser ||= OptionScrapper.new do |o|
         o.on( '-c CONFIG', '--config CONFIG', 'the location of the configuration file' ) { |x| options[:config] = x }
         o.on( '-s URL', '--source SOURCE_URL', 'the source url to mirror gems from' ) { |x| options[:source] = x }
         o.on( '-d DIRECTORY', '--dest DIRECTORY', 'the directory to save the gems to' ) { |x| options[:dest] = x }
-        o.on
         o.on( '-v', '--verbose', 'switch on verbose mode' ) { options[:verbose] = true }
+        o.command :mirror, "starting mirroring a gems respository" do
+          o.command_alias :m
+          o.on( '-m NAME', '--mirror NAME', 'the name of the source mirror you want to sync with' ) { |x| options[:mirror] = x }
+          o.on( '-N', '--no-refresh', 'do not refresh the gems specification' ) { options[:no_refresh] = true }
+          o.on( '-t THREADS', '--threads THREADS', 'the number of http thread to use when downloading' ) { |x| options[:threads] = x }
+          o.on_command { options[:command] = :mirror }
+        end
+        o.command :detail, 'display some details on the respository and present mirror status' do
+          o.command_alias :de
+          o.on( '-m NAME', '--mirror NAME', 'the name of the source mirror you want to sync with' ) { |x| options[:mirror] = x }
+          o.on_command { options[:command] = :detail }
+        end
+        o.command :updates, 'check we if have any updates to mirror' do
+          o.command_alias :up
+          o.on( '-m NAME', '--mirror NAME', 'the name of the source mirror you want to sync with' ) { |x| options[:mirror] = x }
+          o.on( '-N', '--no-refresh', 'do not refresh the gems specification' ) { options[:no_refresh] = true }
+          o.on_command { options[:command] = :updates }
+        end
       end
     end
   end
 end
-
 GemMirror::CLI.new
-

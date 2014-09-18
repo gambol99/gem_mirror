@@ -1,29 +1,27 @@
 #
-#
 #   Author: Rohith
 #   Date: 2014-07-30 21:49:00 +0100 (Wed, 30 Jul 2014)
 #
 #  vim:ts=4:sw=4:et
 #
 $:.unshift File.join(File.dirname(__FILE__),'.','./')
-
 require 'utils'
 require 'yaml'
 require 'logging'
 require 'source'
+require 'configuration'
+require 'logger'
 
 module GemMirror
   class Mirror
     include GemMirror::Utils::FileUtils
     include GemMirror::Utils::URLS
-    include GemMirror::Utils::Logger
+    include GemMirror::Utils::LoggerUtils
+    include GemMirror::Configuration
 
     def initialize options
       settings validate_options( options )
-    end
-
-    def mirrors
-      settings['mirrors'].keys
+      GemMirror::Logger.init options[:loglevel] || :info
     end
 
     def add name, source, directory = nil, options = {}
@@ -37,6 +35,11 @@ module GemMirror
       end
     end
 
+    def check_updates name, filter = '*'
+      raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name
+      sources[name].check_updates filter
+    end
+
     def refresh name
       raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name
       sources[name].refresh
@@ -44,34 +47,16 @@ module GemMirror
 
     def mirror name, filter = '.*'
       raise ArgumentError, "the mirror: #{name} has not been defined" unless mirror? name
-      debug "mirror: source: #{name}, filter: #{filter}"
       sources[name].mirror filter
     end
 
-    private
-    def settings configuration = nil
-      @settings ||= configuration
+    def mirrors
+      settings['mirrors'].keys
     end
 
+    private
     def mirror? name
       settings[name].nil?
-    end
-
-    def validate_options options
-      # step: load any configurations files
-      configuration = ( options[:config] ) ? load_configuration_file( options[:config] ) : set_default_configuration
-      # step: check we have the validate_options
-      raise ArgumentError, "you have not specified any mirrors" unless configuration['mirrors']
-      configuration['mirrors'].each_pair do |name,config|
-        validate_mirror_configuration name, config
-        new_source = GemMirror::Source.new name
-        new_source.source = config['source']
-        new_source.destination = config['destination']
-        new_source.threads = config['threads'] || configuration['threads'] || 1
-        new_source.remove_deleted = config['remove_deleted'] || configuration['remove_deleted'] || true
-        sources[name] = new_source
-      end
-      configuration
     end
 
     def sources
@@ -81,24 +66,5 @@ module GemMirror
     def source? source
       uri? source
     end
-
-    def set_default_configuration
-      {}
-    end
-
-    def load_configuration_file filename
-      YAML.load(File.read(validate_file(filename)))
-    end
-
-    def validate_mirror_configuration name, configuration
-      raise ArgumentError, "you have not specified the name of the source" unless name
-      raise ArgumentError, "#{name}: you have not specified the source url" unless configuration['source']
-      raise ArgumentError, "#{name}: you have not specified the destination directory" unless configuration['destination']
-      debug "checking mirror: #{name}, source: #{configuration['source']}, destination: #{configuration['destination']}"
-      # step: check the source url is valid
-      raise ArgumentError, "#{name}: the source: #{configuration['source']} is not a valid uri" unless uri? configuration['source']
-      validate_directory configuration['destination'], true
-    end
-
   end
 end

@@ -6,12 +6,13 @@
 #
 require 'httparty'
 require 'timeout'
+require 'pp'
 
 module GemMirror
   class Fetch
     include HTTParty
     include GemMirror::Utils::URLS
-    include GemMirror::Utils::Logger
+    include GemMirror::Utils::LoggerUtils
 
     Default_Timeout = 30
 
@@ -29,6 +30,32 @@ module GemMirror
       debug "file: downloaded file: #{url}, filaname: #{filename}, size: #{File.size(filename)} bytes"
     end
 
+    def files base_url, filelist = [], destination, threads
+      debug "files: base_url: #{base_url}, filelist size: #{filelist.size}, destination: #{destination}, threads: #{threads}"
+      # step: split the filelist into section
+      file_sections = split filelist, threads
+      # step: hold the threads
+      scrappers = []
+      file_sections.each do |list|
+        next if list.empty?
+        scrappers << Thread.new do
+          list.each do |filename|
+            begin
+              file_source = "#{base_url}/downloads/#{filename}"
+              file_dest   = "#{destination}/#{filename}"
+              debug "files: downloading: #{file_source}"
+              file file_source, file_dest
+              yield filename, file_source, file_dest, true if block_given?
+            rescue Exception => e
+              yield filename, file_source, file_dest, false if block_given?
+            end
+          end
+        end
+      end
+      # step: wait for the threads to finish
+      scrappers.each(&:join)
+    end
+
     def etag path, timeout = Default_Timeout
       head( path, timeout ).headers['ETag']
     end
@@ -42,6 +69,22 @@ module GemMirror
     end
 
     private
+    def split list = [], groups = 1
+      sections   = []
+      group_size = ( list.size / groups ).ceil
+      group_size = ( group_size == 0 ) ? groups : group_size
+      index      = 0
+      groups.times.each do
+        if index > list.size
+          sections << []
+        else
+          sections << list[index..(index+group_size)]
+        end
+        index += group_size
+      end
+      sections
+    end
+
     def request method, path, timeout = Default_Timeout, options = {}
       response = nil
       begin

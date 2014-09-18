@@ -11,11 +11,10 @@ require 'tempfile'
 require 'fetch'
 require 'forwardable'
 require 'digest'
-require 'pp'
 
 module GemMirror
   class Source
-    include GemMirror::Utils::Logger
+    include GemMirror::Utils::LoggerUtils
 
     attr_accessor :name, :destination, :threads, :remove_deleted, :source
 
@@ -30,18 +29,39 @@ module GemMirror
     end
 
     def refresh timeout = 30
-      debug "refresh: name: #{@name}, timeout: #{timeout}, updating the specification"
+      debug "refresh: name: #{name}, timeout: #{timeout}, updating the specification"
       update_gems_specification timeout
-      debug "refresh: successfully refreshed the gems specification, size: #{gems.size}"
+      debug "refresh: name: #{name}, successfully refreshed the gems specification, size: #{gems.size}"
     end
 
-    def mirror filter
-      info "name: #{name}, starting off the mirroring on gems"
+    def check_updates filter, refresh_specification = false
+      info "mirror: filter: #{filter}, checking for any gem file updates"
+      # step: get an up to date gem specification
+      update_gems_specification if refresh_specification
+      # step: found any missing gems
+      ( gems_available_from_source( filter ) - gems_present || [] ).each do |x|
+        info "check_updates: #{name}, we are missing: #{x}"
+      end
+    end
+
+    def mirror filter, refresh_specification = true
+      info "mirror: #{name}, starting off the mirroring gems"
       # step: refresh the gems specification file and reload the gems data if need be
-      update_gems_specification
+      info "mirror: checking if the gem specification is up to date"
+      update_gems_specification if refresh_specification
       # step: get a list all the gems we are missing
       gems_missing = gems_available_from_source( filter ) - gems_present
-      debug "mirror: we have #{gems_missing.size} missing"
+      if gems_missing.empty?
+        info "mirror: #{name}, we have no missing gems at present"
+      else
+        debug "mirror: #{name}, we have #{gems_missing.size} missing from destination: #{destination}"
+        # step: start downloading the missing gems
+        debug "mirror: #{name}, starting to download the missing gems to: #{destination}"
+        fetch.files source, gems_missing, destination, threads do |filename,file_source,file_destination,result|
+          info "mirror: #{name}, downloaded gem: #{file_source}, destination: #{file_destination}"  if result
+          error "mirror: #{name}, error downloading gem: #{filename}" unless result
+        end
+      end
     end
 
     private
@@ -94,21 +114,15 @@ module GemMirror
     def gems_available_from_source filter
       start_time = Time.now
       data = gems.map { |name,version,type|
-        name if type == 'ruby' and name[/#{filter}/]
+        "#{name}-#{version}.gem" if type == 'ruby' and name[/#{filter}/]
       }.compact
-
-      #data = gems.select { |name,version,type|
-      #  type == 'ruby' and name =~ /#{filter}/
-      #}.collect { |name,version,type|
-      #  name
-      #}
       time_took = Time.now - start_time
       debug "gems_available_from_source: time: #{time_took * 1000}ms"
       data
     end
 
     def gems_present
-      Dir["#{@destination}/*.gems"].entries.map { |f| File.basename(f) }
+      Dir["#{destination}/*.gem"].entries.map { |f| File.basename(f) }
     end
 
     def gems_specification?
@@ -129,10 +143,6 @@ module GemMirror
 
     def fetch
       @fetch ||= GemMirror::Fetch.new source
-    end
-
-    def list_saved_gems
-
     end
   end
 end

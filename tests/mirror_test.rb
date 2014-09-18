@@ -10,12 +10,16 @@ require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'gem_mirror'
 
 options = {
-  :config => './config.yml'
+  :config   => './config.yml',
+  :loglevel => :info
 }
 
 gems = GemMirror.new options
 
-gems.mirror 'rubygems', 'optionscrapper'
+#gems.mirror 'rubygems', '^optionscrapper'
+gems.check_updates 'rubygems', '^option'
+
+gems.mirror 'rubygems', '^option'
 #puts "mirror: #{source.name}, gems: #{source.size}"
 #puts "mirroring the source now"
 #source.mirror '/var/rubygem'

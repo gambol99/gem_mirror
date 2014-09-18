@@ -6,16 +6,17 @@
 #
 module GemMirror
   module Utils
-    module Logger
-      [:info,:error,:warn,:debug].each do |m|
+    module LoggerUtils
+      [:debug, :info,:error,:warn].each do |m|
         define_method m do |*args,&block|
-          formated_print_line m.to_s, args.first || ''
+          GemMirror::Logger.send m, args.first, &block
+          #formated_print_line m.to_s, args.first || ''
         end
       end
 
       private
       def formated_print_line prefix, message, color = :none
-        puts "%-5s : %s" % [ "[#{prefix}]", message ] if message
+        GemMirror::Logger.send  "[%s]%-7s : %s" % [ Time.now, "[#{prefix}]", message ] if message
       end
     end
   end

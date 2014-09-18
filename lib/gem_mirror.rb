@@ -9,10 +9,12 @@ module GemMirror
 
   autoload :Mirror,  "#{ROOT}/gem_mirror/mirror"
   autoload :Version, "#{ROOT}/gem_mirror/version"
+  autoload :Logger,  "#{ROOT}/gem_mirror/logger"
+  autoload :Utils,   "#{ROOT}/gem_mirror/utils"
 
   def self.version
     GemMirror::VERSION
-  end 
+  end
 
   def self.new options
     GemMirror::Mirror.new options
