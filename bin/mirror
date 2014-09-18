@@ -9,7 +9,6 @@ $:.unshift File.join(File.dirname(__FILE__),'.','../lib')
 require 'rubygems' if RUBY_VERSION < '1.9.0'
 require 'optionscrapper'
 require 'colorize'
-require 'forwardable'
 require 'gem_mirror'
 
 module GemMirror
@@ -19,7 +18,10 @@ module GemMirror
     def initialize
       begin
         parser.parse!
-        send options[:command] if options[:command]
+        if options[:command]
+          parser.usage "you have not specified any configuration file" unless options[:config]
+          send options[:command]
+        end
       rescue SystemExit => e
         exit e.status
       rescue Exception => e
@@ -29,11 +31,9 @@ module GemMirror
 
     private
     def mirror
-      fail "the mirror: #{options[:mirror]} does not exist in configuration" if options[:mirror] and mirror? options[:mirror]
-      # step: if we've specified a mirror, check it exists
-      mirrors( options[:mirror] || '.*' ).each do |x|
-
-
+      respositories.mirrors.each do |name|
+        next unless name[/#{options[:mirror]}/]
+        respositories.mirror name, options[:filter]
       end
     end
 
@@ -45,24 +45,11 @@ module GemMirror
 
     end
 
-    def settings
-      @settings ||= nil
-      unless @settings
-        raise ArgumentError, "you have not specified a configuration file" unless options[:config]
-        @settings = load_configuration
-      end
-    end
-
-    def load_configuration
-      YAML.load(File.read(validate_file settings[:config]))
-    end
-
-    def mirrors filter = '.*'
-      settings['mirrors'].keys.select { |x| x[/#{filter}/] }
-    end
-
-    def mirror? name
-      mirrors.include? name
+    def respositories
+      @respositories ||= GemMirror::new({
+        :config   => options[:config],
+        :loglevel => ( options[:verbose] ) ? :debug : :info,
+      })
     end
 
     def options
@@ -70,15 +57,12 @@ module GemMirror
     end
 
     def set_default_options
-      { :threads => 10 }
+      {
+        :threads => 10,
+        :mirror  => '.*',
+        :filter  => '.*'
+      }
     end
-
-    private
-    def formated_print_line message, color = :green
-      puts  "%-5s [%s] : %s".send( color ) % [ "[info]", Time.now.strftime('%H:%M:%S'), message ] if message
-    end
-    alias_method :info, :formated_print_line
-    def fail message; parser.usage message; end
 
     def parser
       @parser ||= OptionScrapper.new do |o|
@@ -89,6 +73,7 @@ module GemMirror
         o.command :mirror, "starting mirroring a gems respository" do
           o.command_alias :m
           o.on( '-m NAME', '--mirror NAME', 'the name of the source mirror you want to sync with' ) { |x| options[:mirror] = x }
+          o.on( '-f FILTER', '--filter FILTER', 'apply a regex filter to the gems you wish to mirror' ) { |x| options[:filter] = x }
           o.on( '-N', '--no-refresh', 'do not refresh the gems specification' ) { options[:no_refresh] = true }
           o.on( '-t THREADS', '--threads THREADS', 'the number of http thread to use when downloading' ) { |x| options[:threads] = x }
           o.on_command { options[:command] = :mirror }
@@ -108,4 +93,5 @@ module GemMirror
     end
   end
 end
+
 GemMirror::CLI.new

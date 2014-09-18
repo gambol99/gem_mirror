@@ -6,7 +6,6 @@
 #
 require 'httparty'
 require 'timeout'
-require 'pp'
 
 module GemMirror
   class Fetch
@@ -34,12 +33,13 @@ module GemMirror
       debug "files: base_url: #{base_url}, filelist size: #{filelist.size}, destination: #{destination}, threads: #{threads}"
       # step: split the filelist into section
       file_sections = split filelist, threads
-      # step: hold the threads
       scrappers = []
       file_sections.each do |list|
         next if list.empty?
         scrappers << Thread.new do
+          debug "files: created thread, id: #{Thread.current.object_id}"
           list.each do |filename|
+            debug "files: thread id: #{Thread.current.object_id} downloading file: #{filename}"
             begin
               file_source = "#{base_url}/downloads/#{filename}"
               file_dest   = "#{destination}/#{filename}"
@@ -91,7 +91,7 @@ module GemMirror
         raise ArgumentError, "the method: #{method} is not supported" unless self.class.respond_to? method
         Timeout::timeout( timeout ) do
           start_time = Time.now
-          debug "request: method: #{method}, path: #{path}, options: #{options}, timeout: #{timeout}"
+          debug "request: method: #{method}, path: #{path}, timeout: #{timeout}"
           response = self.class.send method, path, options
           time_took = Time.now - start_time
           debug "request: response code: #{response.code}, time: #{time_took * 1000} ms"

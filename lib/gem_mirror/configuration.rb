@@ -15,6 +15,7 @@ module GemMirror
     end
 
     def validate_options options
+      validate_file options[:config]
       # step: load any configurations files
       configuration = ( options[:config] ) ? load_configuration_file( options[:config] ) : set_default_configuration
       # step: check we have the validate_options
@@ -42,6 +43,7 @@ module GemMirror
       debug "checking mirror: #{name}, source: #{configuration['source']}, destination: #{configuration['destination']}"
       # step: check the source url is valid
       raise ArgumentError, "#{name}: the source: #{configuration['source']} is not a valid uri" unless uri? configuration['source']
+      Dir.mkdir configuration['destination'] unless File.exists? configuration['destination']
       validate_directory configuration['destination'], true
     end
   end
