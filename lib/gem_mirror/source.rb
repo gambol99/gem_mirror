@@ -5,11 +5,7 @@
 #  vim:ts=4:sw=4:et
 #
 require 'utils'
-require 'thread'
-require 'timeout'
-require 'tempfile'
 require 'fetch'
-require 'forwardable'
 require 'digest'
 
 module GemMirror
