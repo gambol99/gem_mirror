@@ -45,8 +45,7 @@ module GemMirror
     end
 
     def details
-
-
+      raise ArgumentError, "command not yet implemented"
     end
 
     def respositories
