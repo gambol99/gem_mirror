@@ -10,13 +10,7 @@ module GemMirror
       [:debug, :info,:error,:warn].each do |m|
         define_method m do |*args,&block|
           GemMirror::Logger.send m, args.first, &block
-          #formated_print_line m.to_s, args.first || ''
         end
-      end
-
-      private
-      def formated_print_line prefix, message, color = :none
-        GemMirror::Logger.send  "[%s]%-7s : %s" % [ Time.now, "[#{prefix}]", message ] if message
       end
     end
   end

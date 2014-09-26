@@ -45,6 +45,13 @@ module GemMirror
       end
     end
 
+    def list name, options, &block
+      overrides          ||= {}
+      overrides[:filter] ||= '.*'
+      overrides[:refresh_specification] ||= false
+      sources[name].list( options ) { |x| yield x }
+    end
+
     def mirrors
       settings['mirrors'].keys
     end

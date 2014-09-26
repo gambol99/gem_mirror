@@ -31,13 +31,25 @@ module GemMirror
 
     private
     def mirror
+      required [:filter,:mirror], options
       respositories.mirrors.each do |name|
         next unless name[/#{options[:mirror]}/]
         respositories.mirror name, options
       end
     end
 
+    def list
+      required [:filter,:mirror], options
+      respositories.mirrors.each do |name|
+        next unless name[/#{options[:mirror]}/]
+        respositories.list name, options do |gem_package|
+          puts "gem: #{gem_package}"
+        end
+      end
+    end
+
     def updates
+      required [:filter,:mirror], options
       respositories.mirrors.each do |name|
         next unless name[/#{options[:mirror]}/]
         respositories.check_updates name, options
@@ -59,6 +71,10 @@ module GemMirror
       @options ||= set_default_options
     end
 
+    def required arguments, opts
+      arguments.each { |x| raise ArgumentError, "you have not specified the #{x} option" unless opts.has_key? x }
+    end
+
     def set_default_options
       {
         :threads => 10,
@@ -77,15 +93,17 @@ module GemMirror
           o.command_alias :m
           o.on( '-m NAME', '--mirror NAME', 'the name of the source mirror you want to sync with' ) { |x| options[:mirror] = x }
           o.on( '-f FILTER', '--filter FILTER', 'apply a regex filter to the gems you wish to mirror' ) { |x| options[:filter] = x }
-          o.on( '-N', '--no-refresh', 'do not refresh the gems specification' ) { options[:no_refresh] = true }
           o.on( '-t THREADS', '--threads THREADS', 'the number of http thread to use when downloading' ) { |x| options[:threads] = x }
           o.on( '-p', '--progress', 'show a progress bar only' ) { options[:progress] = true }
+          o.on( '-N', '--no-refresh', 'do not refresh the gems specification' ) { options[:no_refresh] = true }
           o.on_command { options[:command] = :mirror }
         end
-        o.command :detail, 'display some details on the respository and present mirror status' do
-          o.command_alias :de
+        o.command :list, 'filter through the list of available gems' do
+          o.command_alias :ls
           o.on( '-m NAME', '--mirror NAME', 'the name of the source mirror you want to sync with' ) { |x| options[:mirror] = x }
-          o.on_command { options[:command] = :detail }
+          o.on( '-f FILTER', '--filter FILTER', 'the regex filter to apply on the') { |x| options[:filter] = x }
+          o.on( '-N', '--no-refresh', 'do not refresh the gems specification' ) { options[:no_refresh] = true }
+          o.on_command { options[:command] = :list }
         end
         o.command :updates, 'check we if have any updates to mirror' do
           o.command_alias :up

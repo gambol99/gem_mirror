@@ -31,17 +31,28 @@ module GemMirror
 
     def refresh overrides
       debug "refresh: name: #{name}, timeout: #{timeout}, updating the specification"
-      update_gems_specification timeout
+      update_gems_specification overrides[:refresh_specification]
       debug "refresh: name: #{name}, successfully refreshed the gems specification, size: #{gems.size}"
     end
 
     def check_updates overrides
-      info "mirror: filter: #{filter}, checking for any gem file updates"
+      info "check_updates: filter: #{filter}, checking for any gem file updates"
       # step: get an up to date gem specification
-      update_gems_specification if refresh_specification
+      update_gems_specification overrides[:refresh_specification]
       # step: found any missing gems
       ( gems_available_from_source( filter ) - gems_present || [] ).each do |x|
         info "check_updates: #{name}, we are missing: #{x}"
+      end
+    end
+
+    def list overrides, &block
+      # step: get a list of the available
+      overrides[:filter] ||= '.*'
+      # step: make sure we have a spec file and if requested, is up to date
+      update_gems_specification overrides[:refresh_specification]
+      # step: filter out the gems
+      gems_available( overrides[:filter] ).each do |gem_package|
+        yield gem_package if gem_package =~ /#{overrides[:filter]}/
       end
     end
 
@@ -49,7 +60,7 @@ module GemMirror
       info "mirror: #{name}, starting off the mirroring gems"
       # step: refresh the gems specification file and reload the gems data if need be
       info "mirror: checking if the gem specification is up to date"
-      update_gems_specification if overrides[:refresh_specification]
+      update_gems_specification overrides[:refresh_specification]
       # step: get a list all the gems we are missing
       gems_missing = gems_available( source_settings(:filter,overrides) ) - gems_present
       if gems_missing.empty?
@@ -75,7 +86,12 @@ module GemMirror
     end
 
     private
-    def update_gems_specification timeout = 30
+    def update_gems_specification refresh_specification = true, timeout = 30
+      # step: if not set, we set true - which is possible given how we pass it
+      refresh_specification ||= true
+      # step: we can move on, if the file already exists and refresh_specification == false
+      return if gems_specification? and !refresh_specification
+      # step: check the specification is up to date
       debug "update_specification: checking we have a gem specification already"
       if gems_specification?
         # step: we have one already, lets check if it's been updated
@@ -96,6 +112,7 @@ module GemMirror
           end
         end
       else
+        debug "update_specification: no specification file found, downloading one now"
         download_gems_specification timeout
       end
     end
@@ -134,6 +151,7 @@ module GemMirror
     end
 
     def gems_available filter
+      debug "gems_available: filter: #{filter}, gems: #{gems.size}"
       start_time = Time.now
       data = gems.map { |name,version,type|
         "#{name}-#{version}.gem" if type == 'ruby' and name[/#{filter}/]
