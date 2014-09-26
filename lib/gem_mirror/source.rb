@@ -54,12 +54,15 @@ module GemMirror
       if gems_missing.empty?
         info "mirror: #{name}, we have no missing gems at present"
       else
-        debug "mirror: #{name}, we have #{gems_missing.size} missing from destination: #{destination}"
+        info "mirror: #{name}, we have #{gems_missing.size} missing from destination: #{destination}"
         # step: start downloading the missing gems
-        debug "mirror: #{name}, starting to download the missing gems to: #{destination}"
+        info "mirror: #{name}, starting to download the missing gems to: #{destination}"
         fetch.files source, gems_missing, destination, threads do |id,filename,file_source,file_destination,result|
-          info  "mirror: (#{id}) #{name}, downloaded gem: #{file_source}, destination: #{file_destination}"  if result
-          error "mirror: (#{id}) #{name}, error downloading gem: #{filename}" unless result
+          file_basename = File.basename( filename )
+          message = "mirror: (#{name}) (thread: #{id}) gem: #{filename} "
+          message << "downloaded successfully"  if result
+          message << "error downloading"        unless result
+          info message
         end
       end
     end

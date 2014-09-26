@@ -45,9 +45,10 @@ module GemMirror
               file_dest   = "#{destination}/#{filename}"
               debug "files: downloading: #{file_source}"
               file file_source, file_dest
-              yield filename, file_source, file_dest, true if block_given?
+              yield Thread.current.object_id, filename, file_source, file_dest, true if block_given?
             rescue Exception => e
-              yield filename, file_source, file_dest, false if block_given?
+              debug "files: error: #{e.message}"
+              yield Thread.current.object_id, filename, file_source, file_dest, false if block_given?
             end
           end
         end
