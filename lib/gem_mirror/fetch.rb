@@ -6,6 +6,7 @@
 #
 require 'httparty'
 require 'timeout'
+require 'thread'
 
 module GemMirror
   class Fetch

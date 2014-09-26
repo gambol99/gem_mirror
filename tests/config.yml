@@ -10,7 +10,7 @@ mirrors:
     source: https://rubygems.org
     destination: ./rubygems
     threads: 3
-    delete_removed: false
+    remove_deleted: false
 threads: 3
-delete_removed: true
+remove_deleted: true
 verbose: true

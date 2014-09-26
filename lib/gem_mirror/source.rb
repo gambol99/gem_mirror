@@ -16,7 +16,7 @@ module GemMirror
   class Source
     include GemMirror::Utils::LoggerUtils
 
-    attr_accessor :name, :destination, :threads, :remove_deleted, :source
+    attr_accessor :name, :destination, :threads, :remove_deleted, :source, :filter
 
     def initialize name
       @name = name
@@ -26,15 +26,16 @@ module GemMirror
       @source_specification = nil
       @remove_deleted = true
       @gems_specification_data = nil
+      @filter = '.*'
     end
 
-    def refresh timeout = 30
+    def refresh overrides
       debug "refresh: name: #{name}, timeout: #{timeout}, updating the specification"
       update_gems_specification timeout
       debug "refresh: name: #{name}, successfully refreshed the gems specification, size: #{gems.size}"
     end
 
-    def check_updates filter, refresh_specification = false
+    def check_updates overrides
       info "mirror: filter: #{filter}, checking for any gem file updates"
       # step: get an up to date gem specification
       update_gems_specification if refresh_specification
@@ -44,25 +45,31 @@ module GemMirror
       end
     end
 
-    def mirror filter, refresh_specification = true
+    def mirror overrides
       info "mirror: #{name}, starting off the mirroring gems"
       # step: refresh the gems specification file and reload the gems data if need be
       info "mirror: checking if the gem specification is up to date"
-      update_gems_specification if refresh_specification
+      update_gems_specification if overrides[:refresh_specification]
       # step: get a list all the gems we are missing
-      gems_missing = gems_available_from_source( filter ) - gems_present
+      gems_missing = gems_available( source_settings(:filter,overrides) ) - gems_present
       if gems_missing.empty?
         info "mirror: #{name}, we have no missing gems at present"
       else
-        info "mirror: #{name}, we have #{gems_missing.size} missing from destination: #{destination}"
+        debug "mirror: #{name}, we have #{gems_missing.size} missing from destination: #{destination}"
         # step: start downloading the missing gems
-        info "mirror: #{name}, starting to download the missing gems to: #{destination}"
+        debug "mirror: #{name}, starting to download the missing gems to: #{destination}"
         fetch.files source, gems_missing, destination, threads do |id,filename,file_source,file_destination,result|
-          file_basename = File.basename( filename )
-          message = "mirror: (#{name}) (thread: #{id}) gem: #{filename} "
-          message << "downloaded successfully"  if result
-          message << "error downloading"        unless result
-          info message
+          info  "mirror: (#{id}) #{name}, downloaded gem: #{file_source}, destination: #{file_destination}" if result
+          error "mirror: (#{id}) #{name}, error downloading gem: #{filename}" unless result
+        end
+        # step: delete any gems no longer in the source
+        deletion_list = gems_for_deletion if source_settings(:delete_removed,overrides)
+        if source_settings(:delete_removed, overrides) and !deletion_list.empty?
+          info "mirror: #{name} deleting #{deletion_list.size} gems no longer in source"
+          deletion_list.each do |filename|
+            info "mirror: #{name} removing gem: #{filename} from mirror"
+            File.delete gem_filename filename
+          end
         end
       end
     end
@@ -93,6 +100,14 @@ module GemMirror
       end
     end
 
+    def source_settings key, override
+      if override.has_key? key
+        override[key]
+      else
+        ( self.respond_to? key.to_sym ) ? self.send( key ) : nil
+      end
+    end
+
     def download_gems_specification timeout = 30
       debug "download_gems_specification: source: #{name}, specifications file does not exist, downloading now to: #{gems_specification_file}"
       fetch.file gems_specification_url, gems_specification_file, timeout
@@ -101,27 +116,35 @@ module GemMirror
       load_gems_specification
     end
 
+    def gem_filename filename
+      "#{destination}/#{filename}"
+    end
+
     def load_gems_specification
-      debug "load_gems_specification: loading the specification"
+      debug "load_gems_specification: loading the specification: #{gems_specification_file}"
       start_time = Time.now
       @gems_specification_data = Marshal.load( Zlib::GzipReader.new( File.open( gems_specification_file ) ).read )
       time_processed = Time.now - start_time
       debug "load_gems_specification: processing time: #{time_processed * 1000}ms"
-    end
-
-    def gems
-      load_gems_specification unless @gems_specification_data
       @gems_specification_data
     end
 
-    def gems_available_from_source filter
+    def gems
+      @gems_specification_data ||= load_gems_specification
+    end
+
+    def gems_available filter
       start_time = Time.now
       data = gems.map { |name,version,type|
         "#{name}-#{version}.gem" if type == 'ruby' and name[/#{filter}/]
       }.compact
       time_took = Time.now - start_time
-      debug "gems_available_from_source: time: #{time_took * 1000}ms"
+      debug "gems_available: time: #{time_took * 1000}ms"
       data
+    end
+
+    def gems_for_deletion source, destination
+      gems_present - gems_available
     end
 
     def gems_present

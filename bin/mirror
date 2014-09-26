@@ -33,16 +33,19 @@ module GemMirror
     def mirror
       respositories.mirrors.each do |name|
         next unless name[/#{options[:mirror]}/]
-        respositories.mirror name, options[:filter]
+        respositories.mirror name, options
       end
     end
 
     def updates
-
+      respositories.mirrors.each do |name|
+        next unless name[/#{options[:mirror]}/]
+        respositories.check_updates name, options
+      end
     end
 
     def details
-
+      raise ArgumentError, "command not yet implemented"
     end
 
     def respositories
@@ -76,6 +79,7 @@ module GemMirror
           o.on( '-f FILTER', '--filter FILTER', 'apply a regex filter to the gems you wish to mirror' ) { |x| options[:filter] = x }
           o.on( '-N', '--no-refresh', 'do not refresh the gems specification' ) { options[:no_refresh] = true }
           o.on( '-t THREADS', '--threads THREADS', 'the number of http thread to use when downloading' ) { |x| options[:threads] = x }
+          o.on( '-p', '--progress', 'show a progress bar only' ) { options[:progress] = true }
           o.on_command { options[:command] = :mirror }
         end
         o.command :detail, 'display some details on the respository and present mirror status' do

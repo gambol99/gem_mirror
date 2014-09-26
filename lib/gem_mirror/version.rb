@@ -6,5 +6,5 @@
 #  vim:ts=4:sw=4:et
 #
 module GemMirror
-  VERSION = "0.0.1"
+  VERSION = '0.0.2'
 end
